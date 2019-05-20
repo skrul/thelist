@@ -29,7 +29,10 @@ FIX_MONTH = {
     'Oct': 'October'
 }
 
-TYPOS = [(r'Squareat 924', 'Square at 924')]
+TYPOS = [
+    (r'Squareat 924', 'Square at 924'),
+    (r'Amerian', 'American')
+]
 
 
 class State(Enum):

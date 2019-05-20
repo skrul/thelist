@@ -3,6 +3,7 @@ from datetime import date
 
 from show import Show
 from band import Band
+from prices import Prices
 
 SPACE_OUTSIDE_PAREN_RE = re.compile(r' (?![^(]*\))')
 
@@ -63,6 +64,7 @@ class ShowParser:
             try:
                 shows.append(self._parse_one(message, raw_show))
             except Exception as e:
+                #print(raw_show)
                 #raise(e)
                 print('failed to parse ' + raw_show + ': ' + str(e))
                 self.stats.inc_failed()
@@ -125,7 +127,7 @@ class ShowParser:
         if len(loc_list) > 1:
             city = loc_list[1].strip()
         show = Show(raw_show, dates, self._parse_bands(bands), venue, city,
-                    ages, ages_notes, price, price_notes, time, time_notes,
+                    ages, ages_notes, None if price is None else Prices.from_string(price), price_notes, time, time_notes,
                     features, notes)
         return show
 
@@ -170,7 +172,7 @@ class ShowParser:
         for raw_band in raw_bands:
             br = re.match(BAND_NAME_EXTRA_RE, raw_band.strip())
             if br:
-                bands.append(Band(br.group('name'), br.group('extra')))
+                bands.append(Band(br.group('name').strip(), br.group('extra')))
         if len(bands) == 0:
             raise Exception("can't parse band list")
         return bands

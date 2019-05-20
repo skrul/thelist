@@ -9,6 +9,7 @@ from stats import Stats
 from message_parser import MessageParser
 from show_parser import ShowParser
 from message import Message
+from prices import Prices
 
 
 def parse_mbox():
@@ -36,7 +37,7 @@ def parse_mbox():
 
 
 def parse_eml():
-    filename = 'examples/The List 04_26 (sf punk_funk_thrash_ska).eml'
+    filename = 'examples/The List 05_17 (sf punk_funk_thrash_ska).eml'
     #filename = 'examples/The List 05_03 (sf punk_funk_thrash_ska).eml'
     with open(filename, 'rb') as f:
         raw_email = f.read()
@@ -48,9 +49,14 @@ def parse_eml():
     sp = ShowParser(stats)
     m = mp.parse(parsed_eml['body'][0]['content'])
     shows = sp.parse(m)
+    c = Counter()
 
     for show in shows:
-        pass
+        if (show.price is None or show.price.leq(20)) and show.city == 'S.F.':
+            print(', '.join(b.name for b in show.bands))
+            #c[show.venue] += 1
+        #c[show.price] += 1
+        #pass
         #print(show)
         # print("{0}    {1:30.30}    {2:20.20}    {3:20.20}    {4:5}    {5:10}    {6:10}".format(
         #     show.dates[0],
@@ -66,10 +72,13 @@ def parse_eml():
     print(stats.failed)
     print((stats.failed / stats.count) * 100)
 
+    # for p in c.most_common():
+    #     print(p)
 
 def main():
-    #parse_eml()
-    parse_mbox()
+    parse_eml()
+    #parse_mbox()
+    #print(Prices.from_string('$1-$2'))
 
     # s = "may 27 sun Dear Indugu (2:30pm in front of Cody's books), The Dandelion War (1pm in front of Cody's books) at LastSundays"
     # m = Message(datetime.now(), [s])

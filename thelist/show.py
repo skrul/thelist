@@ -23,7 +23,7 @@ class Show:
             'city': self.city,
             'age': self.age,
             'age_notes': self.age_notes,
-            'price': self.price,
+            'price': str(self.price),
             'price_notes': self.price_notes,
             'time': self.time,
             'time_notes': self.time_notes,
