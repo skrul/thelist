@@ -30,3 +30,9 @@ class Show:
             'features': self.features,
             'notes': self.notes
         })
+
+    def is_before(self, d):
+        for date in self.dates:
+            if d < date:
+                return True
+        return False

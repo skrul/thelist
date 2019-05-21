@@ -66,7 +66,7 @@ class ShowParser:
             except Exception as e:
                 #print(raw_show)
                 #raise(e)
-                print('failed to parse ' + raw_show + ': ' + str(e))
+                self.stats.log('failed to parse ' + raw_show + ': ' + str(e))
                 self.stats.inc_failed()
         return shows
 
