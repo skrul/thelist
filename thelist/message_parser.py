@@ -29,9 +29,14 @@ FIX_MONTH = {
     'Oct': 'October'
 }
 
-TYPOS = [
-    (r'Squareat 924', 'Square at 924'),
-    (r'Amerian', 'American')
+TYPOS = [(r'Squareat 924', 'Square at 924'), (r'Amerian', 'American')]
+
+FESTIVALS = [
+    'Carnaval San Francisco Festival', 'Union Street Music Festival',
+    'Haight Ashbury Street Fair', 'SF Pride Weekend', 'Fillmore Jazz Festival',
+    'Your Alley Fair', '20th Street Block Party', 'Folsom Street Fair',
+    'Hardly Strictly Bluegrass Festival', 'Castro Street Fair',
+    'Clarion Alley Block Party'
 ]
 
 
@@ -80,4 +85,13 @@ class MessageParser:
                     raw_shows.append(' '.join(current_show))
                     current_show = [line.strip()]
 
-        return Message(start_date, raw_shows)
+        filtered_raw_shows = []
+        for raw_show in raw_shows:
+            is_festival = False
+            for festival in FESTIVALS:
+                if festival in raw_show:
+                    is_festival = True
+                    break
+            if not is_festival:
+                filtered_raw_shows.append(raw_show)
+        return Message(start_date, filtered_raw_shows)

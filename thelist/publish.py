@@ -12,6 +12,7 @@ from band import Band
 
 PLAYLIST_URI = 'spotify:user:skrul:playlist:4H3c7TmhhUOFskcgfi5UkB'
 BOTH_URI = 'spotify:user:skrul:playlist:04vyWyZidXEpKLmgQ8NaXl'
+THEE_PARKSIDE_URI = 'spotify:user:skrul:playlist:5WWCYjGqZ7OAHXtEHSJLCt'
 
 TOKEN = util.prompt_for_user_token('skrul', 'playlist-modify-public',
                                    'ca917724c4c34f9e8f810372813b71a8',
@@ -21,11 +22,11 @@ TOKEN = util.prompt_for_user_token('skrul', 'playlist-modify-public',
 
 def search(sp, band):
     results = sp.search(q=f'"{band.name}"', type='artist')
-    if len(results['artists']['items']) == 1:
-        return results['artists']['items'][0]['uri']
+    #if len(results['artists']['items']) == 1:
+    #    return results['artists']['items'][0]['uri']
     if len(results['artists']['items']) > 0:
         item = results['artists']['items'][0]
-        if item['popularity'] > 0:
+        if item['popularity'] > 50:
             return item['uri']
     else:
         return None
@@ -59,8 +60,8 @@ def get_tracks(sp, playlist_id):
 def clear_playlist(sp, playlist_uri):
     track_uris = get_tracks(sp, playlist_uri)
     for chunk in chunker(track_uris, 50):
-        sp.user_playlist_remove_all_occurrences_of_tracks('skrul', playlist_uri,
-                                                          chunk)
+        sp.user_playlist_remove_all_occurrences_of_tracks(
+            'skrul', playlist_uri, chunk)
 
 
 def add_tracks(sp, playlist_uri, track_uris):
@@ -85,6 +86,11 @@ def bottom_of_the_hill(show):
     two_week_past_now = datetime.now().date() + timedelta(days=14)
     return show.venue == 'the Bottom of the Hill' and show.is_before(
         two_week_past_now)
+
+
+def thee_parkside(show):
+    two_week_past_now = datetime.now().date() + timedelta(days=14)
+    return show.venue == 'thee Parkside' and show.is_before(two_week_past_now)
 
 
 def refresh_playlist(sp, playlist_id, shows, filter_func):
@@ -127,8 +133,11 @@ def main():
 
     sp = spotipy.Spotify(auth=TOKEN)
     #refresh_playlist(sp, BOTH_URI, shows, bottom_of_the_hill)
-    refresh_playlist(sp, PLAYLIST_URI, shows, sf_less_then_twenty_next_two_weeks)
+    refresh_playlist(sp, PLAYLIST_URI, shows,
+                     sf_less_then_twenty_next_two_weeks)
+    #refresh_playlist(sp, THEE_PARKSIDE_URI, shows, thee_parkside)
     #print(search(sp, Band('Rubber Tramp', None)))
+
 
 def test_search(band):
     sp = spotipy.Spotify(auth=TOKEN)

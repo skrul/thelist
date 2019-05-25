@@ -37,7 +37,8 @@ def parse_mbox():
 
 
 def parse_eml():
-    filename = 'examples/The List 05_17 (sf punk_funk_thrash_ska).eml'
+    filename = 'examples/The List 05_24 (sf punk_funk_thrash_ska).eml'
+    #filename = 'examples/The List 05_17 (sf punk_funk_thrash_ska).eml'
     #filename = 'examples/The List 05_03 (sf punk_funk_thrash_ska).eml'
     with open(filename, 'rb') as f:
         raw_email = f.read()
@@ -52,9 +53,10 @@ def parse_eml():
     c = Counter()
 
     for show in shows:
-        if (show.price is None or show.price.leq(20)) and show.city == 'S.F.':
-            print(', '.join(b.name for b in show.bands))
-            #c[show.venue] += 1
+        c[show.venue] += 1
+        # if (show.price is None or show.price.leq(20)) and show.city == 'S.F.':
+        #     print(', '.join(b.name for b in show.bands))
+        #c[show.venue] += 1
         #c[show.price] += 1
         #pass
         #print(show)
@@ -71,9 +73,11 @@ def parse_eml():
     print(stats.count)
     print(stats.failed)
     print((stats.failed / stats.count) * 100)
+    print('\n'.join(stats.log_lines))
 
-    # for p in c.most_common():
-    #     print(p)
+    #for p in c.most_common():
+    #    print(p)
+
 
 def main():
     parse_eml()

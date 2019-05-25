@@ -127,8 +127,9 @@ class ShowParser:
         if len(loc_list) > 1:
             city = loc_list[1].strip()
         show = Show(raw_show, dates, self._parse_bands(bands), venue, city,
-                    ages, ages_notes, None if price is None else Prices.from_string(price), price_notes, time, time_notes,
-                    features, notes)
+                    ages, ages_notes,
+                    None if price is None else Prices.from_string(price),
+                    price_notes, time, time_notes, features, notes)
         return show
 
     def _parse_date(self, line, start_date):
