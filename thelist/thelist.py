@@ -53,7 +53,8 @@ def parse_eml():
     c = Counter()
 
     for show in shows:
-        c[show.venue] += 1
+        if (show.price is None or show.price.leq(20)) and show.city == 'S.F.':
+            c[show.venue] += 1
         # if (show.price is None or show.price.leq(20)) and show.city == 'S.F.':
         #     print(', '.join(b.name for b in show.bands))
         #c[show.venue] += 1
@@ -75,8 +76,8 @@ def parse_eml():
     print((stats.failed / stats.count) * 100)
     print('\n'.join(stats.log_lines))
 
-    #for p in c.most_common():
-    #    print(p)
+    for p in c.most_common()[:20]:
+        print(p)
 
 
 def main():
