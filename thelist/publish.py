@@ -42,18 +42,24 @@ class Filter:
         self.venue = None
         self.price_leq = None
         self.up_to_days = None
+        self.next_week = None
 
-    def accept_show(self, show):
-        if self.city is not None and show.city != self.city:
+    def accept_show(self, message, show):
+        if self.city is not None and show.city not in self.city:
             return False
         if self.venue is not None and show.venue != self.venue:
             return False
         if self.price_leq is not None and show.price is not None and not show.price.leq(
                 self.price_leq):
             return False
-        if self.up_to_days is not None and show.is_before(
-                datetime.now().date() + timedelta(days=self.up_to_days)):
+        if self.up_to_days is not None and show.is_after(
+                message.start_date.date() + timedelta(days=self.up_to_days)):
             return False
+        if self.next_week:
+            year, week_number, _ = (message.start_date + timedelta(days=7)).isocalendar()
+            start_date = datetime.strptime(f"{year}-{week_number - 1}-2", '%Y-%W-%w').date()
+            end_date = start_date + timedelta(days=9)
+            return show.is_after(start_date) and show.is_before(end_date)
         return True
 
     def accept_artist(self, artist):
@@ -71,6 +77,8 @@ class Filter:
             a.append(f'price <= ${self.price_leq}')
         if self.up_to_days is not None:
             a.append(f'up to {self.up_to_days} days away')
+        if self.next_week is not None:
+            a.append('next week (wed to wed)')
         if self.min_spotify_popularity is not None:
             a.append(
                 f'minimum Spotify popularity of {self.min_spotify_popularity}')
@@ -78,14 +86,27 @@ class Filter:
 
 
 def search(sp, band):
+    def sa(b, i):
+        return SpotifyArtist(b, i['uri'], i['popularity'])
+
     results = sp.search(q=f'"{band.name}"', type='artist')
+    #results = sp.search(q=f'"{band.name}"')
     #pprint.pprint(results)
-    if len(results['artists']['items']) > 0:
-        item = results['artists']['items'][0]
-        return SpotifyArtist(band, item['uri'], item['popularity'])
-    else:
+    items = results['artists']['items']
+    num_results = len(items)
+    if num_results == 0:
         return None
 
+    if num_results == 1:
+        return sa(band, items[0])
+
+    names = []
+    for item in items:
+        names.append(item['name'])
+        if item['name'].lower() == band.name.lower():
+            return sa(band, item)
+    print('String match not found: "' + band.name + '" "' + '", "'.join(names) + '"')
+    return None
 
 def top_tracks(sp, uri):
     results = sp.artist_top_tracks(uri)
@@ -142,46 +163,63 @@ def sf_less_then_twenty_next_two_weeks():
     f = Filter()
     f.up_to_days = 14
     f.price_leq = 20
-    f.city = 'S.F.'
-    f.min_spotify_popularity = 10
+    f.city = {'S.F.'}
+    f.min_spotify_popularity = 1
     return f
 
+def sf_less_then_twenty_next_week():
+    f = Filter()
+    f.next_week = True
+    f.price_leq = 20
+    f.city = {'S.F.'}
+    f.min_spotify_popularity = 1
+    return f
+
+def east_bay_less_then_twenty_next_week():
+    f = Filter()
+    f.next_week = True
+    f.price_leq = 20
+    f.city = {'Oakland', 'Berkeley', 'Albany', 'UC Berkeley Campus', 'Richmond', 'Downtown Oakland'}
+    f.min_spotify_popularity = 1
+    return f
 
 def bottom_of_the_hill():
     f = Filter()
-    f.up_to_days = 14
+    f.up_to_days = 28
     f.venue = 'the Bottom of the Hill'
     return f
 
 
 def thee_parkside():
     f = Filter()
-    f.up_to_days = 14
+    f.up_to_days = 28
     f.venue = 'thee Parkside'
     return f
 
 
 def rickshaw_stop():
     f = Filter()
-    f.up_to_days = 14
+    f.up_to_days = 28
     f.venue = 'the Rickshaw Stop'
     return f
 
 
-def refresh_playlist(sp, playlist_id, shows, fil):
+def refresh_playlist(sp, playlist_id, message, shows, fil):
     ordered_bands = []
     all_bands = set()
     for show in shows:
-        if fil.accept_show(show):
+        if fil.accept_show(message, show):
             for band in show.bands:
                 if not band.name in all_bands:
                     ordered_bands.append(band)
                     all_bands.add(band.name)
     sp = spotipy.Spotify(auth=TOKEN)
-    clear_playlist(sp, playlist_id)
     track_uris = []
 
     for band in ordered_bands:
+        # Random DJs
+        if band.name == "dj's":
+            continue
         spotify_artist = search(sp, band)
         if spotify_artist is not None:
             if fil.accept_artist(spotify_artist):
@@ -193,12 +231,14 @@ def refresh_playlist(sp, playlist_id, shows, fil):
         else:
             print('Nothing found for: ' + band.name)
 
+    clear_playlist(sp, playlist_id)
     results = add_tracks(sp, playlist_id, track_uris)
-    set_description(sp, playlist_id, fil.get_description())
+    d = f"Week of {message.start_date.strftime('%b %d, %Y')} ||| Filter: {fil.get_description()}"
+    set_description(sp, playlist_id, d)
 
 
 def main():
-    filename = 'examples/The List 05_24 (sf punk_funk_thrash_ska).eml'
+    filename = 'examples/The List 08_09 (sf punk_funk_thrash_ska).eml'
     with open(filename, 'rb') as f:
         raw_email = f.read()
 
@@ -211,21 +251,24 @@ def main():
     shows = sp.parse(m)
 
     sp = spotipy.Spotify(auth=TOKEN)
-    #refresh_playlist(sp, BOTH_URI, shows, bottom_of_the_hill())
-    refresh_playlist(sp, PLAYLIST_URI, shows,
-                     sf_less_then_twenty_next_two_weeks())
-    #refresh_playlist(sp, THEE_PARKSIDE_URI, shows, thee_parkside())
-    #refresh_playlist(sp, RICKSHAW_STOP_URI, shows, rickshaw_stop())
+    refresh_playlist(sp, PLAYLIST_URI, m, shows, sf_less_then_twenty_next_two_weeks())
+    #refresh_playlist(sp, THEE_PARKSIDE_URI, m, shows, thee_parkside())
+    #refresh_playlist(sp, RICKSHAW_STOP_URI, m, shows, rickshaw_stop())
+    #refresh_playlist(sp, BOTH_URI, m, shows, bottom_of_the_hill())
+    refresh_playlist(sp, 'spotify:playlist:5tXxm7fe4WAfvyvzkMzNiv', m, shows, sf_less_then_twenty_next_week())
+    refresh_playlist(sp, 'spotify:playlist:64q2u7BR0xpeZEEvNYqClI', m, shows, east_bay_less_then_twenty_next_week())
+
     #sa = search(sp, Band('Alien Weapony', None))
     #print(top_tracks(sp, sa.uri))
 
 
 def test_search(band):
     sp = spotipy.Spotify(auth=TOKEN)
-    results = sp.search(q=band, type='artist')
+    results = sp.search(q=f"artist:{band}")
     pprint.pprint(results)
-
+    #sa = search(sp, Band(band, None))
+    #pprint.pprint(sa)
 
 if __name__ == '__main__':
     main()
-    #test_search('beyonce')
+    #test_search('Fox Warren')

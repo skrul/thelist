@@ -9,7 +9,7 @@ SPACE_OUTSIDE_PAREN_RE = re.compile(r' (?![^(]*\))')
 
 AGES_RE = re.compile(r'a/a|\?/\?|\d+\+')
 PRICE_RE = re.compile(r'donation|free|\$\S+')
-TIME_RE = re.compile(r'[\d:/apm]+')
+TIME_RE = re.compile(r'noon|[\d:/]+(am|pm)')
 FEATURES_RE = re.compile(r'[*#$@^]')
 LOCATION_LIST_RE = re.compile(r',(?![^(]*\))')
 
@@ -57,6 +57,7 @@ class ShowParser:
     def parse(self, message):
         shows = []
         for raw_show in message.lines:
+            #raw_show = 'aug 25 sun The Ladygang Ladyhang at Marines Memorial Theater, 609 Sutter Street, S.F. a/a $35 noon/1pm **'
             self.stats.inc_count()
             if re.search(r'(cancelled|incorrect listing|postponed)',
                          raw_show) is not None:
@@ -68,6 +69,8 @@ class ShowParser:
                 #raise(e)
                 self.stats.log('failed to parse ' + raw_show + ': ' + str(e))
                 self.stats.inc_failed()
+            #print(shows[0])
+            #break
         return shows
 
     def _parse_one(self, message, raw_show):
@@ -111,7 +114,15 @@ class ShowParser:
                 continue
             value, notes = read(TIME_RE, a)
             if value is not None:
-                time, time_notes = value, notes
+                if time is None:
+                    time, time_notes = value, notes
+                else:
+                    # Ignore additional times after 'til'
+                    pass
+                continue
+            if a[0] == 'til' or a[0] == 'to':
+                # Ignore
+                a.pop(0)
                 continue
             if re.match(FEATURES_RE, a[0]):
                 features.append(a.pop(0))
@@ -126,6 +137,8 @@ class ShowParser:
         city = None
         if len(loc_list) > 1:
             city = loc_list[1].strip()
+            if city == 'Alameda til':
+                print(raw_show)
         show = Show(raw_show, dates, self._parse_bands(bands), venue, city,
                     ages, ages_notes,
                     None if price is None else Prices.from_string(price),

@@ -33,6 +33,12 @@ class Show:
 
     def is_before(self, d):
         for date in self.dates:
-            if d < date:
+            if date < d:
+                return True
+        return False
+
+    def is_after(self, d):
+        for date in self.dates:
+            if date > d:
                 return True
         return False
